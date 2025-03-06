@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兒少帳戶試算器 - 升級版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        input, select { margin: 5px; padding: 8px; width: 150px; }
+        button { padding: 10px 15px; margin: 10px; cursor: pointer; }
+        canvas { max-width: 600px; margin: auto; }
+    </style>
+</head>
+<body>
+    <h2>兒少帳戶試算器 - 升級版</h2>
+    
+    <label>選擇政策方案</label>
+    <select id="policyPlan">
+        <option value="A">方案 A：0-18 歲可開戶，無相對提撥款</option>
+        <option value="B">方案 B：0-18 歲可開戶，年息 3%</option>
+        <option value="C">方案 C：0-18 歲可開戶，政府提撥 1.5 萬/年</option>
+    </select><br>
+
+    <label>每月存款額（元）</label>
+    <input type="number" id="selfDeposit" value="2500"><br>
+
+    <label>政府補助額（元）</label>
+    <input type="number" id="govSupport" value="2500"><br>
+
+    <label>年利率（%）</label>
+    <input type="number" id="rate" value="1.7"><br>
+
+    <label>計算年限</label>
+    <input type="number" id="years" value="18"><br>
+
+    <label>目標存款金額（輸入後計算所需月存）</label>
+    <input type="number" id="targetAmount" placeholder="選填"><br>
+    
+    <button onclick="calculate()">計算</button>
+    <button onclick="downloadPDF()">下載 PDF</button>
+    
+    <h3>結果：</h3>
+    <p>18年累積總額：<span id="totalResult"></span> 元</p>
+    <p>政府總補助：<span id="govTotal"></span> 元</p>
+    <p>每月所需存款額（若有目標金額）：<span id="requiredMonthlyDeposit"></span> 元</p>
+
+    <canvas id="chartCanvas"></canvas>
+
+    <script>
+        function calculate() {
+            var selfDeposit = parseFloat(document.getElementById("selfDeposit").value);
+            var govSupport = parseFloat(document.getElementById("govSupport").value);
+            var rate = parseFloat(document.getElementById("rate").value) / 100;
+            var years = parseInt(document.getElementById("years").value);
+            var targetAmount = parseFloat(document.getElementById("targetAmount").value) || null;
+            var totalSavings = 0;
+            var govTotal = 0;
+            var monthlyRate = rate / 12;
+            var dataPoints = [];
+
+            for (var i = 0; i < years * 12; i++) {
+                totalSavings += selfDeposit + govSupport;
+                govTotal += govSupport;
+                totalSavings *= (1 + monthlyRate);
+                if (i % 12 === 0) dataPoints.push(totalSavings);
+            }
+
+            document.getElementById("totalResult").innerText = totalSavings.toFixed(0);
+            document.getElementById("govTotal").innerText = govTotal.toFixed(0);
+            
+            if (targetAmount) {
+                var requiredMonthlyDeposit = targetAmount / ((1 + rate) ** years);
+                document.getElementById("requiredMonthlyDeposit").innerText = requiredMonthlyDeposit.toFixed(0);
+            }
+            drawChart(dataPoints, years);
+        }
+
+        function drawChart(dataPoints, years) {
+            var ctx = document.getElementById('chartCanvas').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: years}, (_, i) => `${i+1}年`),
+                    datasets: [{
+                        label: '累積存款金額',
+                        data: dataPoints,
+                        borderColor: 'blue',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: '年份' } },
+                        y: { title: { display: true, text: '金額 (元)' }, min: 0 }
+                    }
+                }
+            });
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("兒少帳戶試算結果", 10, 10);
+            doc.text(`18年累積總額：${document.getElementById("totalResult").innerText} 元`, 10, 20);
+            doc.text(`政府總補助：${document.getElementById("govTotal").innerText} 元`, 10, 30);
+            doc.save("兒少帳戶試算結果.pdf");
+        }
+    </script>
+</body>
+</html>
