@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兒少帳戶試算器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        input { margin: 5px; padding: 8px; width: 120px; }
+        button { padding: 10px 15px; margin: 10px; cursor: pointer; }
+        canvas { max-width: 600px; margin: auto; }
+    </style>
+</head>
+<body>
+    <h2>兒少帳戶試算器</h2>
+    
+    <label>每月存款額（元）</label>
+    <input type="number" id="selfDeposit" value="2500"><br>
+
+    <label>政府補助額（元）</label>
+    <input type="number" id="govSupport" value="2500"><br>
+
+    <label>年利率（%）</label>
+    <input type="number" id="rate" value="1.7"><br>
+
+    <label>計算年限</label>
+    <input type="number" id="years" value="18"><br>
+
+    <button onclick="calculate()">計算</button>
+    
+    <h3>結果：</h3>
+    <p>18年累積總額：<span id="totalResult"></span> 元</p>
+    <p>政府總補助：<span id="govTotal"></span> 元</p>
+
+    <canvas id="chartCanvas"></canvas>
+
+    <script>
+        function calculate() {
+            var selfDeposit = parseFloat(document.getElementById("selfDeposit").value);
+            var govSupport = parseFloat(document.getElementById("govSupport").value);
+            var rate = parseFloat(document.getElementById("rate").value) / 100;
+            var years = parseInt(document.getElementById("years").value);
+            var totalSavings = 0;
+            var govTotal = 0;
+            var monthlyRate = rate / 12;
+            var dataPoints = [];
+
+            for (var i = 0; i < years * 12; i++) {
+                totalSavings += selfDeposit + govSupport;
+                govTotal += govSupport;
+                totalSavings *= (1 + monthlyRate);
+                if (i % 12 === 0) dataPoints.push(totalSavings);
+            }
+
+            document.getElementById("totalResult").innerText = totalSavings.toFixed(0);
+            document.getElementById("govTotal").innerText = govTotal.toFixed(0);
+
+            drawChart(dataPoints, years);
+        }
+
+        function drawChart(dataPoints, years) {
+            var ctx = document.getElementById('chartCanvas').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: years}, (_, i) => `${i+1}年`),
+                    datasets: [{
+                        label: '累積存款金額',
+                        data: dataPoints,
+                        borderColor: 'blue',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: '年份' } },
+                        y: { title: { display: true, text: '金額 (元)' }, min: 0 }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
